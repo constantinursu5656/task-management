@@ -1,0 +1,35 @@
+{
+  "name": "task-management",
+  "version": "1.0.0",
+  "description": "Sistem de management al taskurilor",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^6.4.1",
+    "bcryptjs": "^2.4.3",
+    "body-parser": "^1.20.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "prisma": "^6.4.1"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.2.0",
+    "@types/node": "^22.13.1",
+    "@types/react": "^19.0.8",
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.9",
+    "typescript": "^5.7.3"
+  },
+  "prisma": {
+    "schema": "./prisma/schema.prisma"
+  }
+}

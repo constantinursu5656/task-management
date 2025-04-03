@@ -1,0 +1,56 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       Int     @id @default(autoincrement())
+  email    String  @unique
+  password String
+  fullName String
+  role     String  @default("user")
+  tasks    Task[]  @relation("UserTasks")
+  spaces   Space[] @relation("UserSpaces")
+}
+
+model Space {
+  id    Int    @id @default(autoincrement())
+  name  String
+  lists List[]
+  users User[] @relation("UserSpaces")
+}
+
+model List {
+  id      Int    @id @default(autoincrement())
+  name    String
+  spaceId Int
+  space   Space  @relation(fields: [spaceId], references: [id])
+  tasks   Task[]
+}
+
+model Task {
+  id         Int      @id @default(autoincrement())
+  name       String
+  dueDate    DateTime
+  cat        String
+  speciality String
+  city       String
+  tel        String
+  cnp        String
+  workplace  String
+  email      String
+  dob        DateTime
+  cuim       String
+  address    String
+  schedule   String
+  listId     Int
+  vizita1    Boolean  @default(false)
+  vizita2    Boolean  @default(false)
+  userId     Int
+  list       List     @relation(fields: [listId], references: [id])
+  user       User     @relation("UserTasks", fields: [userId], references: [id])
+}
