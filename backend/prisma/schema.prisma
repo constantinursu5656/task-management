@@ -1,3 +1,5 @@
+// backend/prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,50 +9,124 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Enum pentru rolurile utilizatorilor
+enum UserRole {
+  REPRESENTATIVE
+  MANAGER
+  // Poți adăuga ADMIN dacă e necesar un super-user
+}
+
+// Enum pentru Categoria Task-ului (Doctorului)
+enum Category {
+  DEFAULT // Reprezintă "-"
+  A
+  A_PLUS
+}
+
+// Enum pentru Specialități
+// ATENȚIE: Am adăugat UNKNOWN ca default. Poți schimba default-ul în modelul Task dacă preferi altceva.
+// Am încercat să scriu corect numele, verifică-le te rog. Am înlocuit spațiul cu underscore.
+enum SpecialityType {
+  Balneo_Fizio
+  Cardiologie
+  Chirurgie
+  Dermatologie
+  Diabetologie
+  Endocrinologie
+  Gastroenterologie
+  Geriatrie
+  Ginecologie
+  Gp
+  Hematologie
+  Imunologie
+  Infectioase
+  Interne
+  Nefrologie
+  Neurochirurgie
+  Neurologie
+  Obstretica_Ginecologie
+  Oftalmologie
+  Oncologie
+  ORL
+  Ortopedie
+  Psihiatrie
+  Reumatologie
+  Urologie
+  Urgente
+  Recuperare
+  Medicina_Sportiva
+  Neonantologie
+  MF
+  Pediatrie
+  Pneumologie
+  Alergologie
+  UNKNOWN // Opțiune default/necunoscută
+}
+
 model User {
-  id       Int     @id @default(autoincrement())
-  email    String  @unique
-  password String
-  fullName String
-  role     String  @default("user")
-  tasks    Task[]  @relation("UserTasks")
-  spaces   Space[] @relation("UserSpaces")
+  id               Int      @id @default(autoincrement())
+  email            String   @unique
+  password         String // Parolele TREBUIE stocate criptat (bcrypt) - se face în cod, nu în schemă
+  fullName         String
+  role             UserRole @default(REPRESENTATIVE) // Folosim Enum-ul, default e Reprezentant
+  spaces           Space[]  @relation("UserSpaces") // Pentru accesul managerilor la spații
+  ownedList        List? // Un reprezentant deține o singură listă (relație 1-la-1)
+  // Am eliminat relația directă 'tasks Task[]' - task-urile vin prin listă
 }
 
 model Space {
   id    Int    @id @default(autoincrement())
-  name  String
+  name  String @unique // Numele spațiului (Neuro, Uro, etc.) ar trebui să fie unic
   lists List[]
-  users User[] @relation("UserSpaces")
+  users User[] @relation("UserSpaces") // Userii (managerii) asociați acestui spațiu
 }
 
 model List {
-  id      Int    @id @default(autoincrement())
-  name    String
-  spaceId Int
-  space   Space  @relation(fields: [spaceId], references: [id])
-  tasks   Task[]
+  id               Int    @id @default(autoincrement())
+  // Numele listei va fi probabil numele reprezentantului. Considerăm că e unic per spațiu?
+  // Sau poate folosim direct fullName din User? De discutat. Momentan lăsăm name.
+  name             String
+  spaceId          Int
+  space            Space  @relation(fields: [spaceId], references: [id])
+  tasks            Task[]
+  // Legătura OBLIGATORIE către reprezentantul care deține lista (1-la-1)
+  representativeId Int?    @unique // ID-ul userului (reprezentantului)
+  representative   User?   @relation(fields: [representativeId], references: [id])
 }
 
 model Task {
-  id         Int      @id @default(autoincrement())
-  name       String
-  dueDate    DateTime
-  cat        String
-  speciality String
-  city       String
-  tel        String
-  cnp        String
-  workplace  String
-  email      String
-  dob        DateTime
-  cuim       String
-  address    String
-  schedule   String
-  listId     Int
-  vizita1    Boolean  @default(false)
-  vizita2    Boolean  @default(false)
-  userId     Int
-  list       List     @relation(fields: [listId], references: [id])
-  user       User     @relation("UserTasks", fields: [userId], references: [id])
+  id          Int            @id @default(autoincrement())
+  // Custom Fields definite conform cerințelor
+  name        String // Numele doctorului (Task Name)
+  dueDate     DateTime? // Tip Date. Poate fi null? Necesităm asta pentru view-ul "Unplanned".
+  cat         Category       @default(DEFAULT) // Tip Dropdown (Enum)
+  speciality  SpecialityType @default(UNKNOWN) // Tip Dropdown (Enum)
+  city        String? // Tip Text (poate fi null?)
+  tel         String? // Tip Tel (String, poate fi null?)
+  cnp         String? // Tip Number (stocat ca String, poate fi null?)
+  workplace   String? // Tip Text (poate fi null?)
+  email       String? // Tip Email (String, poate fi null?)
+  dob         DateTime? // Tip Date (poate fi null?)
+  cuim        String? // Tip Number (stocat ca String, poate fi null?)
+  address     String? // Tip Text (poate fi null?)
+  schedule    String? // Tip Text (poate fi null?)
+  vizita1     Boolean        @default(false) // Tip Checkbox
+  vizita2     Boolean        @default(false) // Tip Checkbox
+
+  // Câmpuri adiționale?
+  // De exemplu, pentru "Bleu Programs 2024/2025" - Cadouri?
+  // Ar putea fi un câmp JSON sau relații separate. Momentan nu e definit.
+  // otherGiftInfo Json? // Exemplu, dacă stocăm informații variate
+
+  // Relația către Lista căreia îi aparține task-ul
+  listId      Int
+  list        List           @relation(fields: [listId], references: [id], onDelete: Cascade) // Dacă se șterge lista, se șterg și taskurile? Sau le setăm null? Cascade e mai simplu.
+
+  // Am eliminat relația directă către User (userId, user)
 }
+
+// Notă: Am adăugat "?" la majoritatea câmpurilor String/DateTime din Task
+// pentru a le face opționale (pot fi NULL în baza de date).
+// Asta permite crearea unui task nou (doctor) fără a avea imediat toate detaliile.
+// Dacă un câmp este ABSOLUT obligatoriu mereu, scoateți "?" de la el.
+// Pentru dueDate, l-am făcut opțional pentru a permite view-ul "Unplanned".
